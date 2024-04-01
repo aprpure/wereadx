@@ -65,41 +65,38 @@ export async function web_login_session_init(info: Record<string, any> = {}) {
  * @param url 原请求路径
  * @param cookie
  */
+/**
+ * 刷新skey
+ * @param url 原请求路径
+ * @param cookie
+ */
 export async function web_login_renewal(url: string, cookie = "") {
-  const resp = await postJSON("https://weread.qq.com/web/login/renewal", {
-    rq: encodeURIComponent(url),
-  }, {
-    cookie,
-  });
+  const requestUrl = `https://weread.qq.com/web/login/renewal?rq=${encodeURIComponent(url)}`;
+  const resp = await postJSON(requestUrl, {}, { cookie });
 
-  await checkErrCode(resp, cookie)
+  if (!resp.ok) {
+    throw new Error(`请求失败: ${resp.status} ${resp.statusText}`);
+  }
 
   const data = await resp.json();
   if (data.succ === 1) {
-    return resp.headers.getSetCookie().reduce(
-      (entry: Record<string, string>, cookie) => {
-        const item = cookie.split(";")[0];
-        const [name, value] = item.split("=");
-        if (name === "wr_vid") {
-          entry.vid = value;
-        } else if (name === "wr_skey") {
-          entry.accessToken = value;
-        } else if (name === "wr_rt") {
-          entry.refreshToken = value;
-        }
-        return entry;
-      },
-      {},
-    );
+    const cookies: Record<string, string> = {};
+    for (const cookie of resp.headers.get("set-cookie").split(";")) {
+      const [name, value] = cookie.split("=").map(part => part.trim());
+      cookies[name] = value;
+    }
+    const { wr_vid: vid, wr_skey: accessToken, wr_rt: refreshToken } = cookies;
+    return { vid, accessToken, refreshToken };
   } else {
     // { errCode: -12013, errMsg: "微信登录授权已过期，继续购买需跳转到微信重新登录" }
     // { errCode: -2013, errLog: "C6LyBKI", errMsg: "鉴权失败" }
     if (data.errCode !== -12013) {
-      console.warn('/web/login/renewal接口失败', data, cookie)
+      console.warn('/web/login/renewal接口失败', data, cookie);
     }
-    throw Error(data.errMsg);
+    throw new Error(data.errMsg);
   }
 }
+
 
 /**
  * 通知后台前端已登录
