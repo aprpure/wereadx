@@ -1,10 +1,11 @@
 import { postgres } from "../deps.ts";
 import runtime from "../runtime.ts";
 
+const sql = ''
 // 检查 runtime.databaseUrl 是否存在
 if (runtime.databaseUrl) {
   // 如果存在，则使用 postgres 模块构建数据库连接
-  const sql = postgres.default(runtime.databaseUrl, {
+    sql = postgres.default(runtime.databaseUrl, {
     onnotice: () => {},
   });
 } else {
