@@ -6,21 +6,22 @@ import {sendEvent} from "./common.ts";
 import {Credential} from "../../kv/credential.ts";
 import {os} from "../../deps.ts"
 
-function allfor() {
-    for(;;) {
-        if( window.globalVariable == "暂停") {
-       
-        } else {
-            break
-        }
-    }
-}
+import {jsonResponse} from "../../utils/index.ts";
+import {apiCallWithRetry, ParamCheckEntity, ResponseCode} from "./common.ts";
 
+let isPaused = false; // 新增变量控制暂停状态
+
+// 在 detail.js 中添加延迟函数
+function randomDelay(min, max) {
+    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+    return new Promise(resolve => setTimeout(resolve, delay));
+}
 /**
  * 下载
  */
 export function downloadSSE(bookId: string, credential: Credential): Response {
     let isClosed = false;
+    
     const body = new ReadableStream({
         start: async (controller) => {
             try {
@@ -53,13 +54,18 @@ export function downloadSSE(bookId: string, credential: Credential): Response {
                 sendEvent(isClosed, controller, "preface", preface);
 
                 for (const chapter of chapters) {
+                    console.log(`开始下载章节: ${chapter.chapterUid}, 标题: ${chapter.title}`)
                     if (isClosed) {
                         return;
                     }
+                    while (isPaused) { // 检查是否暂停
+                        console.log("暂停下载中")
+                        await sleep(100); // 等待一段时间再检查
+                    }
 
-                    await allfor();
+
                   
-                     // 单章下载
+                     // 单章下载——真正开始下载的地方
                      const [title, html, style] = await web_book_chapter_e(bookInfo, chapter, cookie);
                      const data = {
                          total: chapters.length,
@@ -69,6 +75,22 @@ export function downloadSSE(bookId: string, credential: Credential): Response {
                          html: html,
                          style: style,
                      };
+
+                     const readingTime = Math.max(
+                        8000, // 最少8秒
+                        Math.min(
+                            25000, // 最多25秒 
+                            html.length / 500 * 1000 // 每500字符1秒
+                        )
+                    );
+                    await randomDelay(readingTime * 0.8, readingTime * 1.2);
+            
+                    // 随机暂停,模拟用户思考或休息
+                    if(Math.random() < 0.1) { // 10%概率
+                        await randomDelay(15000, 30000);
+                    }
+
+
                      sendEvent(isClosed, controller, "progress", data);
                      console.log("web_book_chapter_e")
                      await sleep(randomInteger(8500, 15000));
@@ -99,4 +121,14 @@ export function downloadSSE(bookId: string, credential: Credential): Response {
             "Access-Control-Allow-Origin": "*",
         },
     });
+}
+// 新增控制暂停和恢复的函数
+export function pauseDownload() {
+    isPaused = true;
+    return jsonResponse({code: ResponseCode.Success, data: "", msg: '成功'})
+}
+
+export function resumeDownload() {
+    isPaused = false;
+    return jsonResponse({code: ResponseCode.Success, data: "", msg: '成功'})
 }

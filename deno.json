@@ -1,13 +1,12 @@
 {
+  "nodeModulesDir": "auto",
   "tasks": {
-    "dev": "deno run -A --unstable src/server.ts local",
-    "serve": "deno run -A --unstable src/server.ts",
-    "check:type": "deno check --unstable src/**/*.ts",
-    "lint": "deno lint src/**/*.ts",
-    "fmt": "deno fmt src/**/*.ts",
-    "compile:pre-push": "deno compile -A --output .husky/pre-push scripts/pre-push.ts",
-    "prepare": "husky install",
-    "log": "deno run -A --unstable scripts/pre-push.ts",
-    "example:jdread": "deno run -A --unstable examples/jdread/index.ts"
+    "dev": "deno run -A --unstable --unstable-kv src/server.ts local",
+    "serve": "deno run -A --unstable --unstable-kv src/server.ts"
+  },
+  "imports": {
+    "crypto-js": "npm:crypto-js@4.2.0",
+    "xss": "npm:xss@1.0.14",
+    "parse5": "npm:parse5@7.1.2"
   }
 }

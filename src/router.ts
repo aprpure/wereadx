@@ -21,6 +21,9 @@ import {getPdfUrl} from "./frontend/apis/misc.ts";
 import {downloadAsset} from "./frontend/apis/assets.ts";
 import {bindEmail, deleteNotifyMethod, getSettings, sendVerifyEmail} from "./frontend/apis/notify.ts";
 
+
+import {pauseDownload, resumeDownload} from "./frontend/apis/downloadSSE.ts";
+
 type APIHandler = (req: Request) => Response | Promise<Response>
 
 const config: Record<string, APIHandler> = {
@@ -51,6 +54,9 @@ const config: Record<string, APIHandler> = {
     '/api/notify/deleteNotifyMethod': deleteNotifyMethod,
     '/api/notify/sendVerifyEmail': sendVerifyEmail,
     '/api/bind/email': bindEmail,                   // 绑定邮箱
+    '/api/download/pause': pauseDownload,
+    '/api/download/resume': resumeDownload,
+    
 }
 
 /**

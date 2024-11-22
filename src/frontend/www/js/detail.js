@@ -44,20 +44,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         await downloadPDF(token, bookId)
         document.querySelector('.download_btn').classList.remove('disabled')
     })
-    //暂停下载
-    document.querySelector('.download_pause').addEventListener('click', async (event) => {
-        window.globalVariable = "暂停"
-        
-        document.querySelector('.download_pause').classList.add('disabled')
-        document.querySelector('.download_recover').classList.remove('disabled')
-    })
-    //恢复下载
-    document.querySelector('.download_recover').addEventListener('click', async (event) => {
-        window.globalVariable = "恢复"
+    // 暂停下载
+    document.querySelector('.download_pause').addEventListener('click', async () => {
+        console.log("暂定方法")
+        await fetch(`/api/download/pause`, { method: 'POST' });
+        document.querySelector('.download_pause').classList.add('disabled');
+        document.querySelector('.download_recover').classList.remove('disabled');
+    });
 
-        document.querySelector('.download_recover').classList.add('disabled')
-        document.querySelector('.download_pause').classList.remove('disabled')
-    })
+    // 恢复下载
+    document.querySelector('.download_recover').addEventListener('click', async () => {
+        console.log("恢复方法")
+        await fetch(`/api/download/resume`, { method: 'POST' });
+        document.querySelector('.download_recover').classList.add('disabled');
+        document.querySelector('.download_pause').classList.remove('disabled');
+    });
+
+
+    
     // // 添加阅读
     // document.querySelector('.add_task').addEventListener('click', async () => {
     //     document.querySelector('.add_task').classList.add('disabled')
@@ -290,6 +294,8 @@ function getDownloadSecret(bookId, token) {
     }).then(resp => resp.json())
 }
 
+
+
 /**
  * 下载 html/epub 版本
  * @param secret
@@ -322,6 +328,8 @@ function downloadEBook(secret, token, format = 'html') {
     evtSource.addEventListener('close', () => {
         evtSource.close()
     })
+
+
     // 自定义样式与脚本
     evtSource.addEventListener('preface', (event) => {
         const {styles: styles, scripts: scripts} = JSON.parse(event.data)
@@ -330,9 +338,35 @@ function downloadEBook(secret, token, format = 'html') {
     }, false)
 
     // 单章下载完成
-    evtSource.addEventListener('progress', (event) => {
-        const {total, current, chapterUid, title, html, style} = JSON.parse(event.data)
-        receivedChapterCount++
+    // evtSource.addEventListener('progress', (event) => {
+    //     const {total, current, chapterUid, title, html, style} = JSON.parse(event.data)
+    //     receivedChapterCount++
+    //     adjustImgSizeInChapter(html).then(html => {
+    //         chapters.push({
+    //             chapterIdx: current,
+    //             chapterUid: chapterUid,
+    //             title: title,
+    //             html: html,
+    //             style: style,
+    //         })
+    //     }).catch(err => {
+    //         alert(err.message)
+    //     })
+    //     document.querySelector('.download_btn').textContent = `章节进度: ${current}/${total}`
+    // }, false)
+
+    evtSource.addEventListener('progress', async (event) => {
+        const {total, current, chapterUid, title, html, style} = JSON.parse(event.data);
+        
+        // 检查是否需要暂停
+        // while(window.globalVariable === "暂停") {
+        //     await randomDelay(1000, 2000); // 每1-2秒检查一次状态
+        // }
+
+        // 模拟阅读时间 - 根据内容长度计算合理的阅读时间
+      
+
+        receivedChapterCount++;
         adjustImgSizeInChapter(html).then(html => {
             chapters.push({
                 chapterIdx: current,
@@ -340,12 +374,14 @@ function downloadEBook(secret, token, format = 'html') {
                 title: title,
                 html: html,
                 style: style,
-            })
-        }).catch(err => {
-            alert(err.message)
-        })
-        document.querySelector('.download_btn').textContent = `章节进度: ${current}/${total}`
-    }, false)
+            });
+        });
+
+        document.querySelector('.download_btn').textContent = 
+            `阅读进度: ${current}/${total} (请耐心等待,模拟正常阅读中...)`;
+    });
+
+
 
     // 整本书下载完成
     evtSource.addEventListener('complete', () => {
