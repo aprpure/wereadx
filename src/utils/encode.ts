@@ -22,9 +22,25 @@ export function sha256(raw: string): string {
  * base64 解码
  * @param input
  */
-export function base64Decode(input: string) {
-  return new TextDecoder().decode(base64.decode(input));
+// export function base64Decode(input: string) {
+//   return new TextDecoder().decode(base64.decode(input));
+// }
+export function base64Decode(input: string): string {
+  try {
+    // 清理字符串
+    const cleaned = input.replace(/\s+/g, ''); // 去除空格
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(cleaned)) {
+      console.log(input);
+      throw new Error("Invalid Base64 string");
+    }
+    return new TextDecoder().decode(base64.decode(cleaned)); // 使用 cleaned 进行解码
+  } catch (error) {
+    console.error("Base64 decode error:", error);
+    return ""; // 返回空字符串以保持正常执行
+  }
 }
+
+
 
 /**
  * base64 编码
