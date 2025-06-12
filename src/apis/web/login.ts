@@ -65,40 +65,46 @@ export async function web_login_session_init(info: Record<string, any> = {}) {
  * @param url 原请求路径
  * @param cookie
  */
-export async function web_login_renewal(url: string, cookie = "") {
-  const resp = await postJSON("https://weread.qq.com/web/login/renewal", {
-    rq: encodeURIComponent(url),
-  }, {
-    cookie,
-  });
-
-  await checkErrCode(resp, cookie)
-
-  const data = await resp.json();
-  if (data.succ === 1) {
-    return resp.headers.getSetCookie().reduce(
-      (entry: Record<string, string>, cookie) => {
-        const item = cookie.split(";")[0];
-        const [name, value] = item.split("=");
-        if (name === "wr_vid") {
-          entry.vid = value;
-        } else if (name === "wr_skey") {
-          entry.accessToken = value;
-        } else if (name === "wr_rt") {
-          entry.refreshToken = value;
-        }
-        return entry;
-      },
-      {},
-    );
-  } else {
-    // { errCode: -12013, errMsg: "微信登录授权已过期，继续购买需跳转到微信重新登录" }
-    // { errCode: -2013, errLog: "C6LyBKI", errMsg: "鉴权失败" }
-    if (data.errCode !== -12013) {
-      console.warn('/web/login/renewal接口失败', data, cookie)
-    }
-    throw Error(data.errMsg);
-  }
+export async function web_login_renewal(url: string = "/web/book/read", cookie = "") {  
+  const resp = await postJSON("https://weread.qq.com/web/login/renewal", {  
+    rq: encodeURIComponent(url),  
+  }, {  
+    cookie,  
+  });  
+  
+  await checkErrCode(resp, cookie)  
+  
+  const data = await resp.json();  
+  if (data.succ === 1) {  
+    // 参考Python脚本，直接从Set-Cookie字符串解析  
+    const setCookieHeader = resp.headers.get('Set-Cookie') || '';  
+    const result: Record<string, string> = {};  
+      
+    // 提取wr_skey并只取前8位  
+    const skeyMatch = setCookieHeader.match(/wr_skey=([^;]+)/);  
+    if (skeyMatch) {  
+      result.accessToken = skeyMatch[1].substring(0, 8);  
+    }  
+      
+    // 提取其他cookie值  
+    const vidMatch = setCookieHeader.match(/wr_vid=([^;]+)/);  
+    if (vidMatch) {  
+      result.vid = vidMatch[1];  
+    }  
+      
+    const rtMatch = setCookieHeader.match(/wr_rt=([^;]+)/);  
+    if (rtMatch) {  
+      result.refreshToken = rtMatch[1];  
+    }  
+      
+    return result;  
+  } else {  
+    // 错误处理保持不变  
+    if (data.errCode !== -12013) {  
+      console.warn('/web/login/renewal接口失败', data, cookie)  
+    }  
+    throw Error(data.errMsg);  
+  }  
 }
 
 /**
